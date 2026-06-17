@@ -1,60 +1,160 @@
-# Realtime Chat System
+# 💬 Realtime Cloud Chatbox
 
-A localhost-based realtime chat system built with FastAPI, Streamlit, and WebSockets.
-This project allows two users (Rishab and Blesson) to communicate instantly in separate browser windows.
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.35+-FF4B4B.svg)
+![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20S3%20%7C%20DynamoDB-FF9900.svg)
+![Groq](https://img.shields.io/badge/AI-Groq%20Llama%203-black.svg)
 
-## Architecture
+A production-ready, full-stack real-time chat application powered by Python, AWS, and AI. Built with a blazing fast **FastAPI** backend and an interactive **Streamlit** frontend.
 
-- **Backend (FastAPI)**: Manages active WebSocket connections using an in-memory `ConnectionManager`. It routes messages to all connected clients except the sender to avoid message duplication.
-- **Frontend (Streamlit)**: Uses `websocket-client` to connect to the backend. It uses a non-polling, blocking receive loop at the bottom of the `app.py` script. This efficiently waits for incoming messages and uses `st.rerun()` to update the UI instantly without freezing the app or losing user input.
+## ✨ Features
 
-### Message Flow
-1. User types a message in Streamlit's `st.chat_input`.
-2. The message is instantly appended to the local `session_state` and rendered.
-3. The client sends the message to the FastAPI server via WebSockets.
-4. The server receives the message and broadcasts it to all other active WebSockets.
-5. The receiving client's blocking `recv()` loop catches the message.
-6. The receiving client appends the message to its `session_state` and calls `st.rerun()` to refresh the UI instantly.
+- **Real-Time Messaging:** Instantaneous communication using WebSockets.
+- **Secure Authentication:** Gmail-based OTP verification for new registrations with bcrypt password hashing.
+- **Cloud Database:** Persistent chat history and user data isolated by registration date using **AWS DynamoDB**.
+- **Media & File Sharing:** Upload profile pictures, images, and PDFs securely to **AWS S3**.
+- **AI Document Summarization:** Instantly generate intelligent summaries of uploaded PDFs directly in the chat using the **Groq API (Llama 3)**.
+- **Always Online:** Ready to be deployed on an AWS EC2 instance using PM2 for 24/7 uptime.
 
-## Setup Instructions (macOS)
+---
 
-1. Create a virtual environment (recommended):
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
+## 🏗️ Architecture & Tech Stack
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+- **Frontend:** Streamlit
+- **Backend:** FastAPI, Uvicorn, WebSockets
+- **Database:** Amazon DynamoDB
+- **Storage:** Amazon S3
+- **Deployment:** AWS EC2 (Ubuntu), PM2
+- **AI Integration:** Groq API (`llama-3.1-8b-instant`)
 
-## Running the Application
+---
 
-You need two separate terminal windows.
+## 🛠️ Setup Instructions (Localhost)
 
-**Terminal 1 (Backend Server):**
+Follow these instructions to run the application on your own machine (Mac or Windows).
+
+### 1. Prerequisites
+- Python 3.10 or higher installed.
+- An AWS account (with an S3 bucket and DynamoDB access).
+- A [Groq API Key](https://console.groq.com/) (free tier works perfectly).
+- A Gmail account with an App Password (for sending OTPs).
+
+### 2. Clone the Repository
 ```bash
-# Ensure you are in the project root directory
-uvicorn server.main:app --reload --port 8000
+git clone https://github.com/Rishab779/chatbox.git
+cd chatbox
 ```
 
-**Terminal 2 (Frontend Client):**
+### 3. Create a Virtual Environment
+
+**For macOS / Linux:**
 ```bash
-# Ensure you are in the project root directory
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**For Windows (Command Prompt / PowerShell):**
+```cmd
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Environment Variables
+Create a file named `.env` in the root folder of the project and fill in your credentials. You can use `.env.example` as a template:
+
+```env
+# Email Setup
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_EMAIL=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+
+# AWS Setup
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_DEFAULT_REGION=ap-south-1
+S3_BUCKET_NAME=your-s3-bucket-name
+
+# Networking
+CHATBOX_API_BASE=http://127.0.0.1:8000
+CHATBOX_WS_BASE=ws://127.0.0.1:8000
+
+# AI Configuration
+GROQ_API_KEY=your_groq_api_key
+DEFAULT_GROQ_MODEL=llama-3.1-8b-instant
+```
+
+---
+
+## 🚀 Running on Localhost
+
+You will need to open **two separate terminal windows** (ensure your virtual environment is activated in both).
+
+**Terminal 1 (Start the Backend):**
+```bash
+uvicorn server.main:app --reload
+```
+
+**Terminal 2 (Start the Frontend):**
+```bash
 streamlit run client/app.py
 ```
 
-## How to Test
+Streamlit will automatically open a browser window at `http://localhost:8501`. 
 
-1. Open a browser window to `http://localhost:8501`.
-2. Select "Rishab" and click "Login".
-3. Open a **second** browser window (or incognito window) to the same URL.
-4. Select "Blesson" and click "Login".
-5. Send messages between the two windows. You will see them appear instantly.
+---
 
-## Troubleshooting
+## ☁️ Running on AWS EC2 (Production Deployment)
 
-- **Connection Refused**: Ensure the FastAPI server is running on port 8000.
-- **Port already in use**: If port 8000 or 8501 is busy, you might need to kill the processes using them (`lsof -i :8000` then `kill -9 <PID>`).
-- **Duplicate messages**: Ensure you are only running one instance of the Streamlit app per user, and that you didn't manually refresh the page while a websocket was active. The Streamlit code handles disconnects and reruns automatically.
+To deploy this application to the cloud so it runs 24/7 without needing your laptop open, we use an AWS EC2 instance running Ubuntu and `pm2`.
+
+### 1. Connect to your EC2 instance
+```bash
+ssh -i /path/to/your/key.pem ubuntu@YOUR_EC2_IP
+```
+
+### 2. Install PM2 (If not already installed)
+```bash
+sudo apt update
+sudo apt install npm
+sudo npm install -g pm2
+```
+
+### 3. Clone and Setup
+```bash
+git clone https://github.com/Rishab779/chatbox.git
+cd chatbox
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+*(Don't forget to create your `.env` file on the server using `nano .env`)*
+
+### 4. Start the Application with PM2
+We use PM2 to keep the processes alive in the background:
+
+```bash
+# Start FastAPI backend
+pm2 start "venv/bin/uvicorn server.main:app --host 127.0.0.1 --port 8000" --name chat-backend
+
+# Start Streamlit frontend
+pm2 start "venv/bin/streamlit run client/app.py" --name chat-frontend
+
+# Save the PM2 list so it restarts on server reboot
+pm2 save
+```
+
+### 5. Access your Live Chatbox
+Open your browser and navigate to:
+`http://YOUR_EC2_IP:8501`
+
+*(Ensure you have opened port 8501 in your EC2 Security Group inbound rules!)*
+
+---
+*Built with ❤️ for real-time cloud communication.*
